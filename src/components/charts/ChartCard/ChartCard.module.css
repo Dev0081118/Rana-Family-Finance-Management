@@ -1,0 +1,157 @@
+/* ============================================
+   CHART CARD - MOBILE-FIRST RESPONSIVE DESIGN
+   ============================================ */
+
+.chartCard {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chartCard:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-color-hover);
+}
+
+.chartHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.chartTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.chartSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+}
+
+.chartBody {
+  position: relative;
+  min-height: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chartFullHeight {
+  min-height: 100%;
+  height: 100%;
+}
+
+.chartActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* Extra small devices (320px - 480px) */
+@media (max-width: 480px) {
+  .chartCard {
+    padding: var(--space-3);
+  }
+
+  .chartBody {
+    min-height: 180px;
+  }
+
+  .chartHeader {
+    margin-bottom: var(--space-2);
+  }
+
+  .chartTitle {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* Tablet (768px - 1024px) */
+@media (min-width: 768px) {
+  .chartCard {
+    padding: var(--space-5);
+  }
+
+  .chartBody {
+    min-height: 250px;
+  }
+
+  .chartTitle {
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* Desktop (1024px and up) */
+@media (min-width: 1024px) {
+  .chartCard {
+    padding: var(--space-6);
+  }
+
+  .chartBody {
+    min-height: 280px;
+  }
+}
+
+/* ============================================
+   CHART ACTIONS (Download, Expand, etc.)
+   ============================================ */
+
+.chartActionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+}
+
+.chartActionButton:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-color-hover);
+  color: var(--text-primary);
+}
+
+.chartActionButton:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   ACCESSIBILITY & REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .chartCard,
+  .chartActionButton,
+  .chartHeader {
+    transition: none;
+  }
+}
+
+/* Focus styles for interactive elements */
+.chartActionButton:focus-visible {
+  outline: 2px solid var(--border-color-focus);
+  outline-offset: 2px;
+}

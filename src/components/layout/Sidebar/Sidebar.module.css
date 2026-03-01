@@ -1,0 +1,261 @@
+/* ============================================
+   SIDEBAR - MOBILE-FIRST RESPONSIVE DESIGN
+   ============================================ */
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  max-width: 100%;
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-fixed);
+  transition: transform var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile: Hidden by default (off-canvas) */
+.sidebar {
+  transform: translateX(-100%);
+}
+
+/* Mobile: Open state */
+.sidebar.mobileOpen {
+  transform: translateX(0);
+  box-shadow: var(--shadow-2xl);
+}
+
+/* Tablet: Always visible when not collapsed */
+@media (min-width: 768px) {
+  .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.tabletOpen {
+    transform: translateX(0);
+  }
+}
+
+/* Desktop: Same as tablet */
+@media (min-width: 1024px) {
+  .sidebar {
+    width: var(--sidebar-width);
+  }
+
+  .sidebar.collapsed {
+    width: var(--sidebar-collapsed-width);
+  }
+}
+
+/* Collapsed state (desktop/tablet only) */
+@media (min-width: 768px) {
+  .sidebar.collapsed .logoText,
+  .sidebar.collapsed .navLabel {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity var(--transition-fast), width var(--transition-fast);
+  }
+}
+
+.sidebarHeader {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--topbar-height);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: var(--space-2);
+  margin: calc(var(--space-4) * -1);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logo:hover {
+  background-color: var(--bg-hover);
+}
+
+.logo:focus-visible {
+  outline: 2px solid var(--border-color-focus);
+  outline-offset: 2px;
+}
+
+.logoIcon {
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.logoText {
+  transition: opacity var(--transition-fast), width var(--transition-fast);
+  white-space: nowrap;
+}
+
+.navList {
+  flex: 1;
+  padding: var(--space-3) var(--space-2);
+  list-style: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.navItem {
+  margin-bottom: var(--space-1);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  min-height: 44px; /* Touch-friendly target */
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.navLink:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.navLink:active {
+  background-color: var(--bg-active);
+  transform: scale(0.98);
+}
+
+.navLink.active {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-sm);
+}
+
+.navLink.active:hover {
+  background-color: var(--color-primary-dark);
+  color: var(--text-inverse);
+}
+
+.navIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navLabel {
+  transition: opacity var(--transition-fast), width var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.navBadge {
+  margin-left: auto;
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-danger);
+  color: var(--text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+  min-width: 20px;
+  text-align: center;
+  line-height: 1;
+}
+
+.sidebarFooter {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-color);
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+/* Extra small devices (320px - 480px) */
+@media (max-width: 480px) {
+  .sidebarHeader {
+    padding: var(--space-3);
+  }
+
+  .navList {
+    padding: var(--space-2) var(--space-1);
+  }
+
+  .navLink {
+    padding: var(--space-3) var(--space-3);
+    min-height: 48px; /* Larger touch target for small screens */
+  }
+
+  .logo {
+    font-size: var(--font-size-base);
+  }
+
+  .logoIcon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Tablet-specific (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .sidebar {
+    width: 240px; /* Slightly smaller sidebar for tablet */
+  }
+
+  .navLink {
+    padding: var(--space-3) var(--space-3);
+  }
+}
+
+/* Smooth scroll behavior */
+@supports (scroll-behavior: smooth) {
+  .navList {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Focus management for accessibility */
+.navLink:focus-visible {
+  outline: 2px solid var(--border-color-focus);
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .logoText,
+  .navLabel,
+  .navLink,
+  .logo {
+    transition: none;
+  }
+}

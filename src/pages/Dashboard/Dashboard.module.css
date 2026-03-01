@@ -1,0 +1,223 @@
+/* ============================================
+   DASHBOARD - MOBILE-FIRST RESPONSIVE GRID
+   ============================================ */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--grid-gap);
+  padding-bottom: var(--space-8);
+}
+
+.dashboardHeader {
+  margin-bottom: var(--space-2);
+}
+
+.dashboardTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.dashboardSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.chartContainer {
+  width: 100%;
+  min-height: 250px;
+  position: relative;
+}
+
+/* ============================================
+   SUMMARY CARDS GRID
+   ============================================ */
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr; /* Mobile: single column */
+  gap: var(--grid-gap);
+}
+
+/* Tablet: 2 columns */
+@media (min-width: 768px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop: 3 columns */
+@media (min-width: 1024px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Large Desktop: 5 columns (auto-fit with minmax) */
+@media (min-width: 1280px) {
+  .summaryGrid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 160px;
+}
+
+.summaryCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.summaryCardTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+}
+
+.summaryCardIcon {
+  width: 40px;
+  height: 40px;
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.summaryCardValue {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: var(--line-height-tight);
+  word-break: break-word;
+}
+
+.summaryCardChange {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  margin-top: auto;
+}
+
+.summaryCardChange.positive {
+  color: var(--color-success);
+}
+
+.summaryCardChange.negative {
+  color: var(--color-danger);
+}
+
+.summaryCardChange.neutral {
+  color: var(--text-tertiary);
+}
+
+.sparkline {
+  width: 100%;
+  height: 40px;
+  margin-top: var(--space-2);
+  opacity: 0.8;
+}
+
+/* ============================================
+   CHARTS GRID
+   ============================================ */
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr; /* Mobile: single column */
+  gap: var(--grid-gap);
+}
+
+/* Tablet: 2 columns */
+@media (min-width: 768px) {
+  .chartsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop: Maintain 2 columns for better chart readability */
+@media (min-width: 1024px) {
+  .chartsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+.chartFullWidth {
+  grid-column: 1 / -1;
+}
+
+/* ============================================
+   CHART CARD OPTIMIZATIONS
+   ============================================ */
+
+/* Ensure charts maintain aspect ratio on mobile */
+.chartFullWidth > div {
+  height: 250px !important;
+}
+
+@media (min-width: 768px) {
+  .chartFullWidth > div {
+    height: 300px !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+
+@media (max-width: 480px) {
+  .summaryCardValue {
+    font-size: var(--font-size-xl);
+  }
+
+  .summaryCardIcon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .summaryCard {
+    min-height: 150px;
+  }
+}
+
+/* ============================================
+   LOADING & EMPTY STATES
+   ============================================ */
+
+.dashboardLoading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .dashboard {
+    gap: var(--space-4);
+  }
+
+  .summaryGrid,
+  .chartsGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-4);
+  }
+}

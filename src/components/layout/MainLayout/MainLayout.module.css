@@ -1,0 +1,67 @@
+/* ============================================
+   MAIN LAYOUT - MOBILE-FIRST RESPONSIVE
+   ============================================ */
+
+.mainLayout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Main Content Area */
+.mainContent {
+  flex: 1;
+  margin-left: 0; /* Mobile: no sidebar margin */
+  margin-top: var(--topbar-height);
+  padding: var(--container-padding);
+  transition: margin-left var(--transition-normal) ease;
+  min-height: calc(100vh - var(--topbar-height));
+  width: 100%;
+}
+
+.mainContentFull {
+  margin-left: 0;
+}
+
+.pageContent {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================================
+   TABLET & DESKTOP (768px and up)
+   ============================================ */
+@media (min-width: 768px) {
+  .mainContent {
+    margin-left: var(--sidebar-width);
+    padding: var(--container-padding);
+  }
+
+  .mainContentFull {
+    margin-left: 0;
+  }
+}
+
+/* ============================================
+   MOBILE SIDEBAR OVERLAY
+   ============================================ */
+.mobileOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal-backdrop);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-normal) ease, visibility var(--transition-normal) ease;
+}
+
+.mobileOverlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Prevent body scroll when sidebar is open */
+body.sidebar-open {
+  overflow: hidden;
+}

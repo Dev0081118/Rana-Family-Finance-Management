@@ -1,0 +1,144 @@
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.table thead {
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+  padding: var(--space-4) var(--space-4);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast);
+}
+
+.table th:hover {
+  background-color: var(--bg-hover);
+}
+
+.table th .sortIcon {
+  display: inline-flex;
+  margin-left: var(--space-1);
+  vertical-align: middle;
+  color: var(--text-tertiary);
+}
+
+.table th.sorted .sortIcon {
+  color: var(--color-primary);
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--transition-fast);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+.table td {
+  padding: var(--space-4);
+  color: var(--text-secondary);
+}
+
+.table tbody td {
+  vertical-align: middle;
+}
+
+/* Cell variants */
+.cellRight {
+  text-align: right;
+}
+
+.cellCenter {
+  text-align: center;
+}
+
+.cellBold {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.cellPositive {
+  color: var(--color-success);
+}
+
+.cellNegative {
+  color: var(--color-danger);
+}
+
+/* Empty state */
+.emptyState {
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.emptyStateIcon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-4);
+  color: var(--color-gray-400);
+}
+
+.emptyStateText {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-2);
+}
+
+.emptyStateSubtext {
+  font-size: var(--font-size-sm);
+}
+
+/* Loading state */
+.loadingState {
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  border: 3px solid var(--bg-tertiary);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .table th,
+  .table td {
+    padding: var(--space-3);
+  }
+
+  .table {
+    font-size: var(--font-size-xs);
+  }
+}
