@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Wallet } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { FormInput, FormSelect } from '../../components/common/FormInput';
@@ -25,7 +25,6 @@ interface FormErrors {
 
 const AddInvestment: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [formData, setFormData] = useState<FormData>({
     assetName: '',
     assetType: '',
@@ -112,7 +111,7 @@ const AddInvestment: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await investmentService.create({
+      await investmentService.create({
         assetName: formData.assetName.trim(),
         assetType: formData.assetType,
         investedAmount: Number(formData.investedAmount),

@@ -1,31 +1,266 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PiggyBank, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import Card from '../../components/common/Card';
 import ChartCard from '../../components/charts/ChartCard';
 import Button from '../../components/common/Button';
-import { savingsAccounts, getSavingsGrowthData, getDepositVsWithdrawData, getIncomeByMember } from '../../data/mockData';
+import { savingsService } from '../../services/api';
+import { authService } from '../../services/api';
 import styles from './Savings.module.css';
+
+interface SavingTransaction {
+  _id: string;
+  type: 'deposit' | 'withdraw';
+  amount: number;
+  date: string;
+  note?: string;
+  member: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface GrowthData {
+  date: string;
+  balance: number;
+}
+
+interface DepositWithdrawData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface MemberContribution {
+  memberName: string;
+  amount: number;
+  percentage: number;
+  color: string;
+}
 
 const Savings: React.FC = () => {
   const navigate = useNavigate();
-  const savingsGrowth = getSavingsGrowthData();
-  const depositVsWithdraw = getDepositVsWithdrawData();
-  const memberContributions = getIncomeByMember();
+  const location = useLocation();
+  const [savings, setSavings] = useState<SavingTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const isMounted = React.useRef(true);
+  const [shouldRefresh, setShouldRefresh] = useState(false);
 
-  const totalBalance = savingsAccounts.reduce((sum, account) => sum + account.balance, 0);
-  const totalDeposits = depositVsWithdraw[0]?.value || 0;
-  const totalWithdrawals = depositVsWithdraw[1]?.value || 0;
+  const currentUser = authService.getCurrentUser();
+
+  const fetchSavings = async (retryCount = 0): Promise<boolean> => {
+    if (!isMounted.current) return false;
+
+    try {
+      setLoading(true);
+      const response = await savingsService.getAll();
+      if (isMounted.current) {
+        setSavings(response.data.data);
+        setError('');
+      }
+      return true;
+    } catch (err: any) {
+      if (!isMounted.current) return false;
+
+      const status = err.response?.status;
+      
+      // Handle 429 Too Many Requests with exponential backoff
+      if (status === 429) {
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+        console.warn(`Rate limited. Retrying in ${delay}ms (attempt ${retryCount + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchSavings(retryCount + 1);
+      }
+      
+      if (status !== 401) {
+        setError(err.response?.data?.message || 'Failed to fetch savings data');
+        console.error('Error fetching savings:', err);
+      }
+      return false;
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    isMounted.current = true;
+    if (currentUser) {
+      fetchSavings();
+    }
+    return () => {
+      isMounted.current = false;
+    };
+  }, [currentUser?.id]); // Only depend on user ID, not whole object
+
+  // Refresh data when returning from add page - use state flag instead of location.state
+  useEffect(() => {
+    if (location.state?.refresh) {
+      setShouldRefresh(true);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    if (shouldRefresh && isMounted.current) {
+      fetchSavings().finally(() => {
+        if (isMounted.current) {
+          setShouldRefresh(false);
+          window.history.replaceState({}, document.title);
+        }
+      });
+    }
+  }, [shouldRefresh]);
+
+  // Retry handler for error button
+  const handleRetry = () => {
+    fetchSavings();
+  };
 
   const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
   };
+
+  // Calculate total balance (deposits - withdrawals)
+  const totalBalance = savings.reduce((sum, s) => {
+    return s.type === 'deposit' ? sum + s.amount : sum - s.amount;
+  }, 0);
+
+  const totalDeposits = savings
+    .filter(s => s.type === 'deposit')
+    .reduce((sum, s) => sum + s.amount, 0);
+
+  const totalWithdrawals = savings
+    .filter(s => s.type === 'withdraw')
+    .reduce((sum, s) => sum + s.amount, 0);
+
+  // Process savings growth data (cumulative balance over time)
+  const processSavingsGrowth = (): GrowthData[] => {
+    const sortedSavings = [...savings].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const growthMap = new Map<string, number>();
+    let runningBalance = 0;
+
+    sortedSavings.forEach(saving => {
+      const date = new Date(saving.date);
+      const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      
+      if (saving.type === 'deposit') {
+        runningBalance += saving.amount;
+      } else {
+        runningBalance -= saving.amount;
+      }
+      
+      growthMap.set(dateKey, runningBalance);
+    });
+
+    // If no savings, return empty array
+    if (growthMap.size === 0) {
+      return [];
+    }
+
+    // Fill in missing dates with previous balance
+    const dates = Array.from(growthMap.keys()).sort();
+    const filledData: GrowthData[] = [];
+    let lastBalance = 0;
+
+    dates.forEach(date => {
+      const balance = growthMap.get(date) || lastBalance;
+      filledData.push({ date, balance: balance });
+      lastBalance = balance;
+    });
+
+    return filledData;
+  };
+
+  // Process deposit vs withdrawal data
+  const processDepositVsWithdraw = (): DepositWithdrawData[] => {
+    const deposits = totalDeposits;
+    const withdrawals = totalWithdrawals;
+
+    return [
+      { name: 'Deposits', value: deposits, color: '#10b981' },
+      { name: 'Withdrawals', value: withdrawals, color: '#ef4444' }
+    ];
+  };
+
+  // Process member contributions
+  const processMemberContributions = (): MemberContribution[] => {
+    const memberMap = new Map<string, number>();
+    let total = 0;
+
+    savings.forEach(saving => {
+      if (saving.type === 'deposit') {
+        const memberName = saving.member?.name || 'Unknown';
+        memberMap.set(memberName, (memberMap.get(memberName) || 0) + saving.amount);
+        total += saving.amount;
+      }
+    });
+
+    const colors = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+    return Array.from(memberMap.entries())
+      .map(([memberName, amount], index) => ({
+        memberName,
+        amount,
+        percentage: total > 0 ? (amount / total) * 100 : 0,
+        color: colors[index % colors.length]
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  };
+
+  const savingsGrowth = processSavingsGrowth();
+  const depositVsWithdraw = processDepositVsWithdraw();
+  const memberContributions = processMemberContributions();
+
+  if (loading) {
+    return (
+      <div className={styles.savingsPage}>
+        <div className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Savings</h1>
+          <Button leftIcon={<PiggyBank size={16} />} onClick={() => navigate('/savings/add')}>
+            Add Deposit
+          </Button>
+        </div>
+        <Card>
+          <div className={styles.loadingContainer}>
+            <p>Loading savings data...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.savingsPage}>
+        <div className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Savings</h1>
+          <Button leftIcon={<PiggyBank size={16} />} onClick={() => navigate('/savings/add')}>
+            Add Deposit
+          </Button>
+        </div>
+        <Card>
+          <div className={styles.errorContainer}>
+            <p className={styles.errorMessage}>{error}</p>
+            <Button onClick={handleRetry}>Retry</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const accountColors = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -76,7 +311,7 @@ const Savings: React.FC = () => {
               <LineChart data={savingsGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                 <XAxis dataKey="date" stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`} width={40} />
+                <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value / 1000}k`} width={40} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'var(--bg-card)',
@@ -100,7 +335,7 @@ const Savings: React.FC = () => {
               <BarChart data={depositVsWithdraw}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                 <XAxis dataKey="name" stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`} width={40} />
+                <YAxis stroke="var(--text-tertiary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value / 1000}k`} width={40} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'var(--bg-card)',
@@ -157,25 +392,30 @@ const Savings: React.FC = () => {
       </div>
 
       {/* Savings Accounts */}
-      <Card title="Savings Accounts" subtitle={`${savingsAccounts.length} accounts`}>
-        <div className={styles.accountsGrid}>
-          {savingsAccounts.map((account, index) => (
-            <div key={account.id} className={styles.accountCard}>
-              <div className={styles.accountHeader}>
-                <div className={styles.accountIcon} style={{ backgroundColor: accountColors[index % accountColors.length] }}>
+      <Card title="Savings Transactions" subtitle={`${savings.length} transactions`}>
+        <div className={styles.transactionsGrid}>
+          {savings.map((saving, index) => (
+            <div key={saving._id} className={styles.transactionCard}>
+              <div className={styles.transactionHeader}>
+                <div className={styles.transactionIcon} style={{ backgroundColor: accountColors[index % accountColors.length] }}>
                   <PiggyBank size={20} />
                 </div>
                 <div>
-                  <h4 className={styles.accountName}>{account.name}</h4>
-                  <p className={styles.accountType}>{account.type}</p>
+                  <h4 className={styles.transactionName}>
+                    {saving.type === 'deposit' ? 'Deposit' : 'Withdrawal'}
+                  </h4>
+                  <p className={styles.transactionDate}>
+                    {new Date(saving.date).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-              <div className={styles.accountBalance}>
-                {formatCurrency(account.balance)}
+              <div className={styles.transactionAmount}>
+                {saving.type === 'deposit' ? '+' : '-'}
+                {formatCurrency(saving.amount)}
               </div>
-              <div className={styles.accountInterest}>
-                {account.interestRate}% APY
-              </div>
+              {saving.note && (
+                <p className={styles.transactionNote}>{saving.note}</p>
+              )}
             </div>
           ))}
         </div>

@@ -7,7 +7,8 @@ const {
   getInvestmentPerformance,
   getMemberContributions,
   getCategoryBreakdown,
-  getYearlySummary
+  getYearlySummary,
+  getDashboardData
 } = require('../controllers/analyticsController');
 const { protect } = require('../middleware/auth');
 const { validate, dateRangeValidation } = require('../middleware/validation');
@@ -34,5 +35,8 @@ router.route('/category-breakdown')
 
 router.route('/yearly-summary')
   .get(getYearlySummary);
+
+router.route('/dashboard')
+  .get(getDashboardData);
 
 module.exports = router;

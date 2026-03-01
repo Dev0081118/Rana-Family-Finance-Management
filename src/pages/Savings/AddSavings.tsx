@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { FormInput, FormTextarea } from '../../components/common/FormInput';
@@ -23,7 +23,6 @@ interface FormErrors {
 
 const AddSavings: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [formData, setFormData] = useState<FormData>({
     type: 'deposit',
     amount: '',
@@ -91,7 +90,7 @@ const AddSavings: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await savingsService.create({
+      await savingsService.create({
         type: formData.type,
         amount: Number(formData.amount),
         date: formData.date,

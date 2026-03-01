@@ -41,7 +41,11 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again later'
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for dashboard endpoint (has its own caching)
+    return req.path === '/api/v1/analytics/dashboard';
+  }
 });
 app.use('/api/', limiter);
 

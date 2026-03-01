@@ -325,9 +325,9 @@ const Login: React.FC = () => {
           )}
         </div>
 
-        <div className={styles.demoNotice}>
+        {/* <div className={styles.demoNotice}>
           <strong>Demo Mode:</strong> Register a new account to test the forms.
-        </div>
+        </div> */}
       </div>
     </div>
   );

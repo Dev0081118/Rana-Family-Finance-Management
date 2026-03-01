@@ -517,12 +517,134 @@ const getYearlySummary = asyncHandler(async (req, res, next) => {
   });
 });
 
+const getDashboardData = asyncHandler(async (req, res, next) => {
+  // Set cache control headers to reduce conditional requests
+  res.set('Cache-Control', 'public, max-age=30, s-maxage=30, stale-while-revalidate=60');
+  
+  // Simple in-memory cache per user (in production, use Redis)
+  const cacheKey = `dashboard:${req.user._id}`;
+  if (global.dashboardCache && global.dashboardCache[cacheKey]) {
+    const cached = global.dashboardCache[cacheKey];
+    if (Date.now() - cached.timestamp < 30000) { // 30 seconds cache
+      return res.status(200).json({
+        success: true,
+        data: cached.data,
+        cached: true
+      });
+    }
+  }
+
+  // Fetch all data in parallel for efficiency
+  const [incomeRes, expenseRes, savingsRes, investmentRes] = await Promise.all([
+    Income.find({ member: req.user._id }).sort({ date: -1 }).lean(),
+    Expense.find({ member: req.user._id }).sort({ date: -1 }).lean(),
+    Savings.find({ member: req.user._id }).sort({ date: -1 }).lean(),
+    Investment.find({ member: req.user._id }).sort({ purchaseDate: -1 }).lean()
+  ]);
+
+const incomes = incomeRes;
+const expenses = expenseRes;
+const savings = savingsRes;
+const investments = investmentRes;
+
+// Calculate totals
+const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0);
+const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+const totalSavings = savings
+  .filter(s => s.type === 'deposit')
+  .reduce((sum, s) => sum + s.amount, 0) -
+  savings
+  .filter(s => s.type === 'withdraw')
+  .reduce((sum, s) => sum + s.amount, 0);
+const totalInvestments = investments.reduce((sum, inv) => sum + inv.currentValue, 0);
+const netWorth = totalSavings + totalInvestments;
+
+// Process monthly data
+const processMonthlyData = (data, valueKey) => {
+  const monthlyMap = new Map();
+  data.forEach(item => {
+    const date = new Date(item.date || item.purchaseDate);
+    const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    monthlyMap.set(monthYear, (monthlyMap.get(monthYear) || 0) + (valueKey === 'amount' ? item.amount : item.currentValue));
+  });
+  return Array.from(monthlyMap.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+};
+
+const incomeMonthly = processMonthlyData(incomes, 'amount');
+const expenseMonthly = processMonthlyData(expenses, 'amount');
+
+// Process expense by category
+const categoryMap = new Map();
+expenses.forEach(exp => {
+  categoryMap.set(exp.category, (categoryMap.get(exp.category) || 0) + exp.amount);
+});
+
+const colors = ['#ef4444', '#f59e0b', '#0ea5e9', '#10b981', '#8b5cf6', '#ec4899', '#6b7280'];
+const expenseByCategory = Array.from(categoryMap.entries())
+  .map(([category, amount], index) => ({
+    category,
+    amount,
+    percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0,
+    color: colors[index % colors.length]
+  }))
+  .sort((a, b) => b.amount - a.amount);
+
+const responseData = {
+  success: true,
+  data: {
+    summary: {
+      totalIncome,
+      totalExpenses,
+      totalSavings,
+      totalInvestments,
+      netWorth
+    },
+    income: {
+      monthly: incomeMonthly,
+      raw: incomes
+    },
+    expenses: {
+      monthly: expenseMonthly,
+      byCategory: expenseByCategory,
+      raw: expenses
+    },
+    savings: {
+      raw: savings
+    },
+    investments: {
+      raw: investments
+    }
+  }
+};
+
+// Cache the response
+if (!global.dashboardCache) {
+  global.dashboardCache = {};
+}
+global.dashboardCache[cacheKey] = {
+  data: responseData.data,
+  timestamp: Date.now()
+};
+
+// Clean up old cache entries (simple LRU)
+const cacheKeys = Object.keys(global.dashboardCache);
+if (cacheKeys.length > 100) {
+  const oldestKey = cacheKeys[0];
+  delete global.dashboardCache[oldestKey];
+}
+
+res.status(200).json(responseData);
+});
+
 module.exports = {
-  getNetWorth,
-  getMonthlyCashFlow,
-  getSavingsGrowth,
-  getInvestmentPerformance,
-  getMemberContributions,
-  getCategoryBreakdown,
-  getYearlySummary
+getNetWorth,
+getMonthlyCashFlow,
+getSavingsGrowth,
+getInvestmentPerformance,
+getMemberContributions,
+getCategoryBreakdown,
+getYearlySummary,
+getDashboardData
 };

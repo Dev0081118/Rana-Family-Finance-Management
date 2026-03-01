@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sun, Moon, Menu, Calendar, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { authService } from '../../../services/api';
 import styles from './Topbar.module.css';
 
 interface TopbarProps {
@@ -22,6 +23,17 @@ const Topbar: React.FC<TopbarProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+
+  const currentUser = useMemo(() => authService.getCurrentUser(), []);
+  
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -121,11 +133,17 @@ const Topbar: React.FC<TopbarProps> = ({
         </button>
 
         <div className={styles.userProfile} role="button" tabIndex={0}>
-          <div className={styles.userAvatar}>JD</div>
+          <div className={styles.userAvatar}>
+            {currentUser ? getUserInitials(currentUser.name) : 'JD'}
+          </div>
           {(!isMobile || isTablet) && (
             <div className={styles.userInfo}>
-              <span className={styles.userName}>John Doe</span>
-              <span className={styles.userRole}>Admin</span>
+             <span className={styles.userName}>
+               {currentUser?.name || 'User'}
+             </span>
+             <span className={styles.userRole}>
+               {currentUser?.role === 'admin' ? 'Admin' : 'Member'}
+             </span>
             </div>
           )}
         </div>

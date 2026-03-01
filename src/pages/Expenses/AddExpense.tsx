@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { FormInput, FormSelect, FormTextarea } from '../../components/common/FormInput';
@@ -23,7 +23,6 @@ interface FormErrors {
 
 const AddExpense: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [formData, setFormData] = useState<FormData>({
     amount: '',
     category: '',
@@ -102,7 +101,7 @@ const AddExpense: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await expenseService.create({
+      await expenseService.create({
         amount: Number(formData.amount),
         category: formData.category,
         date: formData.date,
