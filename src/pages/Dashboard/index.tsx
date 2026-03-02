@@ -43,30 +43,73 @@ const Dashboard: React.FC = () => {
   const isMounted = useRef(true);
   const fetchInProgress = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check if user is authenticated via token
   const token = localStorage.getItem('token');
 
-  // Fetch dashboard data
+  // Fetch dashboard data with proper memoization and error handling
   const fetchDashboardData = useCallback(async () => {
+    console.log('[Dashboard] fetchDashboardData called', { 
+      isMounted: isMounted.current, 
+      fetchInProgress: fetchInProgress.current,
+      hasToken: !!localStorage.getItem('token')
+    });
+    
+    // Prevent concurrent requests
     if (fetchInProgress.current) {
+      console.log('[Dashboard] Fetch already in progress, skipping');
       return;
     }
-    // Double-check token (in case it changed)
+    
+    // Check authentication
     const currentToken = localStorage.getItem('token');
-    if (!currentToken || !isMounted.current) {
+    if (!currentToken) {
+      console.log('[Dashboard] No token found, aborting');
+      if (isMounted.current) {
+        setError('Authentication required. Please log in.');
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Check if component is still mounted
+    if (!isMounted.current) {
+      console.log('[Dashboard] Component not mounted, aborting');
       return;
     }
 
+    // Set loading state BEFORE starting fetch
+    setLoading(true);
+    setError('');
+    
     fetchInProgress.current = true;
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    const timeoutId = setTimeout(() => abortController.abort(), 30000); // 30 second timeout
+    
+    // Set timeout for request (60 seconds)
+    const timeoutId = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    }, 60000);
 
     try {
-      setLoading(true);
+      console.log('[Dashboard] Making API request to /api/v1/analytics/dashboard');
       const response = await analyticsService.getDashboardData({ signal: abortController.signal });
+      console.log('[Dashboard] API response received:', response.status, response.data);
+      
+      if (!response.data || !response.data.data) {
+        throw new Error('Invalid response format: missing data');
+      }
+      
       const { summary, income, expenses, savings, investments } = response.data.data;
+      console.log('[Dashboard] Data extracted successfully');
+      
+      // Validate data structure
+      if (!summary || !income || !expenses || !savings || !investments) {
+        throw new Error('Invalid data structure: missing required properties');
+      }
 
       // Process summary cards
       const generateSparkline = (data: number[]) =>
@@ -114,13 +157,13 @@ const Dashboard: React.FC = () => {
       const newExpenseData = expenses.monthly;
       const newExpenseByCategory = expenses.byCategory;
 
+      // Update state with fresh data
       setSummaryCards(cards);
       setIncomeData(newIncomeData);
       setExpenseData(newExpenseData);
       setExpenseByCategory(newExpenseByCategory);
-      setError('');
 
-      // Save to cache with fresh data
+      // Save to cache
       try {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({
           summaryCards: cards,
@@ -130,22 +173,41 @@ const Dashboard: React.FC = () => {
         }));
         sessionStorage.setItem(TIME_KEY, Date.now().toString());
       } catch (e) {
-        // Ignore cache errors
+        console.warn('[Dashboard] Cache save failed:', e);
       }
+      
+      console.log('[Dashboard] Data successfully loaded and cached');
     } catch (err: any) {
-      if (isMounted.current && err.name !== 'AbortError') {
-        const errorMessage = err.response?.data?.message || 'Failed to fetch dashboard data';
+      console.error('[Dashboard] API request failed:', err);
+      
+      if (isMounted.current) {
+        let errorMessage = 'Failed to fetch dashboard data';
+        
+        if (err.name === 'AbortError') {
+          console.warn('[Dashboard] Request aborted (timeout or manual abort)');
+          errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (err.response) {
+          errorMessage = err.response.data?.message || 'Server error occurred';
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        
         setError(errorMessage);
+        console.error('[Dashboard] Error set:', errorMessage);
       }
     } finally {
+      // Always clean up
       clearTimeout(timeoutId);
       fetchInProgress.current = false;
+      abortControllerRef.current = null;
+      
+      // Only update loading state if component is still mounted
       if (isMounted.current) {
         setLoading(false);
+        console.log('[Dashboard] Loading state set to false');
       }
-      abortControllerRef.current = null;
     }
-  }, []); // Empty deps: setters are stable, token read inside
+  }, []); // Empty deps: all dependencies are refs or stable functions
 
   // Cleanup on unmount: abort pending request and mark unmounted
   useEffect(() => {
@@ -164,32 +226,63 @@ const Dashboard: React.FC = () => {
       delete (window as any).refreshDashboard;
     };
   }, [fetchDashboardData]);
+  
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      console.log('[Dashboard] Loading state detected, setting safety timeout');
+      loadingTimeoutRef.current = setTimeout(() => {
+        if (loading && isMounted.current) {
+          console.warn('[Dashboard] Safety timeout triggered - forcing loading to false');
+          setLoading(false);
+          setError('Request timeout - please refresh or retry');
+        }
+      }, 70000); // 70 seconds - longer than both API and abort timeouts
+    }
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [loading]);
 
   // Load from cache or fetch on mount / when auth token changes
   useEffect(() => {
+    console.log('[Dashboard] Mount effect triggered. Token present:', !!token);
     if (!token) {
+      console.log('[Dashboard] No token found, showing auth error');
       setError('Authentication required. Please log in.');
       setLoading(false);
       return;
     }
 
+    console.log('[Dashboard] Checking cache...');
     // Try to load from session cache first
     try {
       const cachedData = sessionStorage.getItem(CACHE_KEY);
       const cachedTime = sessionStorage.getItem(TIME_KEY);
       if (cachedData && cachedTime) {
         const time = parseInt(cachedTime, 10);
-        if (Date.now() - time < FETCH_INTERVAL) {
+        const age = Date.now() - time;
+        console.log('[Dashboard] Cache found, age:', age, 'ms');
+        if (age < FETCH_INTERVAL) {
           const parsed = JSON.parse(cachedData);
+          console.log('[Dashboard] Loading from cache:', parsed);
           setSummaryCards(parsed.summaryCards);
           setIncomeData(parsed.incomeData);
           setExpenseData(parsed.expenseData);
           setExpenseByCategory(parsed.expenseByCategory);
           setLoading(false);
           return;
+        } else {
+          console.log('[Dashboard] Cache expired');
         }
+      } else {
+        console.log('[Dashboard] No cache found');
       }
     } catch (e) {
+      console.error('[Dashboard] Cache read error:', e);
       // Ignore cache errors
     }
 

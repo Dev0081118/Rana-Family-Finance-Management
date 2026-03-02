@@ -97,10 +97,12 @@ const Analytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const currentUser = useMemo(() => authService.getCurrentUser(), []);
+  // Ref to track whether we have any data loaded (prevents unnecessary fetches)
+  const hasDataRef = useRef(false);
   const isMounted = useRef(true);
   const fetchInProgress = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load from sessionStorage cache on mount
   useEffect(() => {
@@ -116,6 +118,7 @@ const Analytics: React.FC = () => {
         setExpenses(cachedData.expenses);
         setSavings(cachedData.savings);
         setInvestments(cachedData.investments);
+        hasDataRef.current = true;
         setLoading(false);
         console.log('Analytics: Loaded from session cache');
       }
@@ -124,8 +127,15 @@ const Analytics: React.FC = () => {
     }
   }, []);
 
-  // Memoized fetch function with proper dependencies
+  // Memoized fetch function with proper error handling and memoization
   const fetchAllData = useCallback(async (signal?: AbortSignal) => {
+    console.log('[Analytics] fetchAllData called', {
+      hasData: hasDataRef.current,
+      fetchInProgress: fetchInProgress.current,
+      isMounted: isMounted.current,
+      hasUser: !!authService.getCurrentUser()
+    });
+
     // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -134,30 +144,56 @@ const Analytics: React.FC = () => {
 
     // Prevent concurrent requests
     if (fetchInProgress.current) {
-      return;
-    }
-    
-    const now = Date.now();
-    const lastFetch = getLastFetchTime();
-    
-    // Check if we should skip due to throttling (only if we already have data)
-    if (!shouldFetch(lastFetch, FETCH_CONFIG.MIN_INTERVAL, incomes.length > 0)) {
-      return;
-    }
-    
-    // Check if component is still mounted and user exists
-    if (!currentUser || !isMounted.current) {
+      console.log('[Analytics] Fetch already in progress, skipping');
       return;
     }
 
+    // Check if component is still mounted
+    if (!isMounted.current) {
+      console.log('[Analytics] Component not mounted, aborting');
+      return;
+    }
+
+    // Check authentication
+    const user = authService.getCurrentUser();
+    if (!user) {
+      console.log('[Analytics] No user found, aborting');
+      if (isMounted.current) {
+        setError('Authentication required. Please log in.');
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Throttle: check if we should fetch based on last fetch time and data existence
+    const now = Date.now();
+    const lastFetch = getLastFetchTime();
+    if (!shouldFetch(lastFetch, FETCH_CONFIG.MIN_INTERVAL, hasDataRef.current)) {
+      console.log('[Analytics] Throttling: skipping fetch due to recent request');
+      return;
+    }
+
+    // Set loading state BEFORE starting fetch
+    setLoading(true);
+    setError('');
+    
     fetchInProgress.current = true;
     setLastFetchTime(now);
 
+    // Set timeout for request (60 seconds)
+    const timeoutId = setTimeout(() => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    }, 60000);
+
     try {
-      setLoading(true);
+      console.log('[Analytics] Making API request to /api/v1/analytics/dashboard');
       const response = await analyticsService.getDashboardData({
         signal: signal || abortControllerRef.current.signal,
       });
+      console.log('[Analytics] API response received:', response.status, response.data);
+      
       const { income, expenses, savings, investments } = response.data.data;
 
       // Use fresh data from response
@@ -166,43 +202,58 @@ const Analytics: React.FC = () => {
       const freshSavings = savings.raw;
       const freshInvestments = investments.raw;
 
+      // Update state with fresh data
       setIncomes(freshIncomes);
       setExpenses(freshExpenses);
       setSavings(freshSavings);
       setInvestments(freshInvestments);
-      setError('');
-      console.log('Analytics: Data fetched successfully');
-      // Save to cache with fresh data
+      
+      // Save to cache
       setCachedData(CACHE_KEYS.ANALYTICS, {
         incomes: freshIncomes,
         expenses: freshExpenses,
         savings: freshSavings,
         investments: freshInvestments,
       });
+      
+      hasDataRef.current = true;
+      console.log('Analytics: Data fetched and cached successfully');
     } catch (err: any) {
-      // Ignore abort errors
-      if (err.name === 'AbortError') {
-        return;
-      }
-      // Only set error if component is still mounted
+      console.error('[Analytics] API request failed:', err);
+      
       if (isMounted.current) {
-        setError(err.response?.data?.message || 'Failed to fetch analytics data');
-        console.error('Error fetching analytics data:', err);
+        let errorMessage = 'Failed to fetch analytics data';
+        
+        if (err.name === 'AbortError') {
+          console.warn('[Analytics] Request aborted (timeout or manual abort)');
+          errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (err.response) {
+          errorMessage = err.response.data?.message || 'Server error occurred';
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+        
+        setError(errorMessage);
+        console.error('[Analytics] Error set:', errorMessage);
       }
     } finally {
+      // Always clean up
+      clearTimeout(timeoutId);
       fetchInProgress.current = false;
+      abortControllerRef.current = null;
+      
+      // Only update loading state if component is still mounted
       if (isMounted.current) {
         setLoading(false);
+        console.log('[Analytics] Loading state set to false');
       }
     }
-  }, [currentUser, incomes.length]);
+  }, []); // Empty deps: all dependencies are refs or stable functions
 
   // Initial fetch on mount
   useEffect(() => {
-    if (currentUser) {
-      fetchAllData();
-    }
-  }, [currentUser, fetchAllData]);
+    fetchAllData();
+  }, [fetchAllData]);
 
   // Expose fetch function globally for manual refresh
   useEffect(() => {
@@ -221,6 +272,26 @@ const Analytics: React.FC = () => {
       }
     };
   }, []);
+
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      console.log('[Analytics] Loading state detected, setting safety timeout');
+      loadingTimeoutRef.current = setTimeout(() => {
+        if (loading && isMounted.current) {
+          console.warn('[Analytics] Safety timeout triggered - forcing loading to false');
+          setLoading(false);
+          setError('Request timeout - please refresh or retry');
+        }
+      }, 70000); // 70 seconds - longer than both API and abort timeouts
+    }
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [loading]);
 
   const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('en-IN', {

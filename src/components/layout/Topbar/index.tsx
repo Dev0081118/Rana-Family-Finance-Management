@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sun, Moon, Menu, Calendar, ChevronDown } from 'lucide-react';
+import { Sun, Moon, Menu, Calendar, ChevronDown, User, Settings, LogOut } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { authService } from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import styles from './Topbar.module.css';
 
 interface TopbarProps {
@@ -22,9 +23,12 @@ const Topbar: React.FC<TopbarProps> = ({
   isTablet,
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-  const currentUser = useMemo(() => authService.getCurrentUser(), []);
+  const currentUser = user;
   
   const getUserInitials = (name: string) => {
     return name
@@ -35,23 +39,26 @@ const Topbar: React.FC<TopbarProps> = ({
       .slice(0, 2);
   };
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest(`${styles.monthSelectorWrapper}`)) {
         setShowMonthDropdown(false);
       }
+      if (!target.closest(`${styles.userProfile}`)) {
+        setShowUserDropdown(false);
+      }
     };
 
-    if (showMonthDropdown) {
+    if (showMonthDropdown || showUserDropdown) {
       document.addEventListener('click', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [showMonthDropdown]);
+  }, [showMonthDropdown, showUserDropdown]);
 
   const handleMonthClick = () => {
     if (isMobile) {
@@ -132,7 +139,7 @@ const Topbar: React.FC<TopbarProps> = ({
           )}
         </button>
 
-        <div className={styles.userProfile} role="button" tabIndex={0}>
+        <div className={styles.userProfile} role="button" tabIndex={0} onClick={() => setShowUserDropdown(!showUserDropdown)}>
           <div className={styles.userAvatar}>
             {currentUser ? getUserInitials(currentUser.name) : 'JD'}
           </div>
@@ -146,7 +153,30 @@ const Topbar: React.FC<TopbarProps> = ({
              </span>
             </div>
           )}
+          <ChevronDown className={styles.chevronIcon} size={14} />
         </div>
+
+        {/* User dropdown */}
+        {showUserDropdown && (
+          <div className={styles.userDropdown} role="menu">
+            <button className={styles.userDropdownItem} onClick={() => navigate('/profile')}>
+              <User size={16} />
+              Profile
+            </button>
+            <button className={styles.userDropdownItem} onClick={() => navigate('/profile')}>
+              <Settings size={16} />
+              Settings
+            </button>
+            <div className={styles.userDropdownDivider}></div>
+            <button className={styles.userDropdownItem} onClick={() => {
+              logout();
+              navigate('/login');
+            }}>
+              <LogOut size={16} />
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

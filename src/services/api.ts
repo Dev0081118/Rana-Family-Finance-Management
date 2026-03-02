@@ -40,7 +40,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds
+  timeout: 60000, // 60 seconds - increased for slower backends
 });
 
 // Utility function to create custom error
@@ -126,6 +126,19 @@ const retryRequest = async <T>(
     return await fn();
   } catch (error) {
     const axiosError = error as AxiosError;
+    
+    console.log(`[API Retry] Attempt ${retryCount + 1} failed:`, {
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      retryCount,
+      maxRetries: config.maxRetries
+    });
+
+    // Don't retry if request was aborted (AbortError)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('[API Retry] AbortError detected - not retrying');
+      throw error;
+    }
 
     // Check if we should retry
     const shouldRetry =
@@ -135,11 +148,20 @@ const retryRequest = async <T>(
         (axiosError.response?.status &&
           config.retryOnStatusCodes.includes(axiosError.response.status)));
 
+    console.log('[API Retry] Should retry:', shouldRetry, {
+      retryCount,
+      isNetworkError: isNetworkError(error as Error),
+      isTimeoutError: isTimeoutError(error as Error),
+      status: axiosError.response?.status,
+      retryOnStatusCodes: config.retryOnStatusCodes
+    });
+
     if (!shouldRetry) {
       throw error;
     }
 
     const delay = getRetryDelay(retryCount, config.backoffFactor);
+    console.log(`[API Retry] Waiting ${delay}ms before retry ${retryCount + 2}`);
     await new Promise(resolve => setTimeout(resolve, delay));
 
     return retryRequest(fn, config, retryCount + 1);
@@ -192,10 +214,20 @@ api.interceptors.response.use(
           break;
         case 401:
           errorType = ErrorType.UNAUTHORIZED;
-          // Clear token and redirect to login
+          // Enhanced 401 handling: clear auth and notify
+          console.warn('[API] Authentication failed, clearing session');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          
+          // Notify application of auth failure (for context updates)
+          window.dispatchEvent(new CustomEvent('auth:logout', { 
+            detail: { reason: 'token_expired' } 
+          }));
+          
+          // Redirect to login if not already there
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
           break;
         case 403:
           errorType = ErrorType.FORBIDDEN;

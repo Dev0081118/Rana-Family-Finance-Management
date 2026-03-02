@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import { authService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 import styles from './Login.module.css';
 
 type AuthMode = 'login' | 'register';

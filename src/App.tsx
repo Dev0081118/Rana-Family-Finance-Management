@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Income from './pages/Income';
@@ -14,6 +15,7 @@ import AddIncome from './pages/Income/AddIncome';
 import AddExpense from './pages/Expenses/AddExpense';
 import AddSavings from './pages/Savings/AddSavings';
 import AddInvestment from './pages/Investments/AddInvestment';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import './styles/global.css';
 
 const App: React.FC = () => {
@@ -26,67 +28,94 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Login />} />
-          <Route path="/" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Dashboard />
-            </MainLayout>
-          } />
-          <Route path="/income" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Income />
-            </MainLayout>
-          } />
-          <Route path="/income/add" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <AddIncome />
-            </MainLayout>
-          } />
-          <Route path="/expenses" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Expenses />
-            </MainLayout>
-          } />
-          <Route path="/expenses/add" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <AddExpense />
-            </MainLayout>
-          } />
-          <Route path="/savings" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Savings />
-            </MainLayout>
-          } />
-          <Route path="/savings/add" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <AddSavings />
-            </MainLayout>
-          } />
-          <Route path="/investments" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Investments />
-            </MainLayout>
-          } />
-          <Route path="/investments/add" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <AddInvestment />
-            </MainLayout>
-          } />
-          <Route path="/analytics" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Analytics />
-            </MainLayout>
-          } />
-          <Route path="/profile" element={
-            <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
-              <Profile />
-            </MainLayout>
-          } />
-        </Routes>
-      </Router>
+      <AuthProvider>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Login />} />
+            
+            {/* Protected routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Dashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/income" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Income />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/income/add" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <AddIncome />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/expenses" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Expenses />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/expenses/add" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <AddExpense />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/savings" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Savings />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/savings/add" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <AddSavings />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/investments" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Investments />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/investments/add" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <AddInvestment />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Analytics />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <MainLayout currentMonth={currentMonth} onMonthChange={handleMonthChange}>
+                  <Profile />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   TrendingUp,
@@ -8,8 +8,12 @@ import {
   BarChart3,
   User,
   Wallet,
+  LogIn,
+  LogOut,
+  Settings,
 } from 'lucide-react';
 import { NavItem } from '../../../types';
+import { useAuth } from '../../../contexts/AuthContext';
 import styles from './Sidebar.module.css';
 
 interface SidebarProps {
@@ -39,6 +43,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggle,
   onClose,
 }) => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   // Handle touch swipe to close on mobile
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -125,7 +137,38 @@ const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className={styles.sidebarFooter}>
-        {/* Footer content can be added here */}
+        {isAuthenticated ? (
+          <div className={styles.userSection}>
+            <div className={styles.userInfo}>
+              <div className={styles.userAvatar}>
+                {user?.name.charAt(0).toUpperCase()}
+              </div>
+              <div className={styles.userDetails}>
+                <span className={styles.userName}>{user?.name}</span>
+                <span className={styles.userRole}>{user?.role}</span>
+              </div>
+            </div>
+            <button 
+              className={styles.logoutButton}
+              onClick={handleLogout}
+              aria-label="Log out"
+            >
+              <LogOut size={18} />
+              {!collapsed && <span>Logout</span>}
+            </button>
+          </div>
+        ) : (
+          <div className={styles.authSection}>
+            <button 
+              className={styles.loginButton}
+              onClick={() => navigate('/login')}
+              aria-label="Log in"
+            >
+              <LogIn size={18} />
+              {!collapsed && <span>Login</span>}
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
