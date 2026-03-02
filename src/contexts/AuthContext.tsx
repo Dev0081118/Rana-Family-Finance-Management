@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const response = await authService.login(email, password);
       
-      const { token: newToken, user: newUser } = response.data.data;
+      const { token: newToken, user: newUser } = response.data;
       
       // Store token and user in localStorage
       localStorage.setItem('token', newToken);

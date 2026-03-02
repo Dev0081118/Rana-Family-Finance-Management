@@ -18,10 +18,12 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ income, expense
   ];
 
   const formatCurrency = (value: number): string => {
-    if (value >= 1000) {
-      return `₹${(value / 1000).toFixed(1)}k`;
-    }
-    return `₹${value.toFixed(0)}`;
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
   };
 
   return (
@@ -40,8 +42,8 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({ income, expense
               tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
               axisLine={{ stroke: 'var(--border-color)' }}
             />
-            <Tooltip 
-              formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
+            <Tooltip
+              formatter={(value: number) => [formatCurrency(value), '']}
               contentStyle={{
                 backgroundColor: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',

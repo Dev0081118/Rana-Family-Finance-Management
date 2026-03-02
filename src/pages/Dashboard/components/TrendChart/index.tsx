@@ -14,10 +14,12 @@ interface TrendChartProps {
 }
 
 const formatCurrency = (value: number): string => {
-  if (value >= 1000) {
-    return `₹${(value / 1000).toFixed(1)}k`;
-  }
-  return `₹${value.toFixed(0)}`;
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
 };
 
 const formatDate = (dateStr: string): string => {
