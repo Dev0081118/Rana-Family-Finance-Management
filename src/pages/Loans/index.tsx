@@ -819,12 +819,29 @@ const Loans: React.FC = () => {
         size="md"
       >
         {selectedLoan && (
-          <form onSubmit={(e) => { e.preventDefault(); handleEditSubmit({ name: selectedLoan.name }); }}>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target as HTMLFormElement);
+            const data = {
+              name: formData.get('editLoanName') as string,
+              lender: formData.get('editLender') as string,
+              loanAmount: Number(formData.get('editLoanAmount')),
+              interestRate: Number(formData.get('editInterestRate')),
+              term: Number(formData.get('editTerm')),
+              startDate: formData.get('editStartDate'),
+              endDate: formData.get('editEndDate'),
+              purpose: formData.get('editPurpose') as string,
+              collateral: formData.get('editCollateral') as string || undefined,
+              status: formData.get('editStatus') as 'active' | 'completed' | 'overdue' | 'pending',
+            };
+            handleEditSubmit(data);
+          }}>
             <div className={styles.formGroup}>
               <label htmlFor="editLoanName">Loan Name *</label>
               <input
                 type="text"
                 id="editLoanName"
+                name="editLoanName"
                 required
                 defaultValue={selectedLoan.name}
               />
@@ -834,6 +851,7 @@ const Loans: React.FC = () => {
               <input
                 type="text"
                 id="editLender"
+                name="editLender"
                 required
                 defaultValue={selectedLoan.lender}
               />
@@ -843,6 +861,7 @@ const Loans: React.FC = () => {
               <input
                 type="number"
                 id="editLoanAmount"
+                name="editLoanAmount"
                 required
                 min="0"
                 step="0.01"
@@ -854,6 +873,7 @@ const Loans: React.FC = () => {
               <input
                 type="number"
                 id="editInterestRate"
+                name="editInterestRate"
                 required
                 min="0"
                 max="100"
@@ -866,9 +886,30 @@ const Loans: React.FC = () => {
               <input
                 type="number"
                 id="editTerm"
+                name="editTerm"
                 required
                 min="1"
                 defaultValue={selectedLoan.term}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="editStartDate">Start Date *</label>
+              <input
+                type="date"
+                id="editStartDate"
+                name="editStartDate"
+                required
+                defaultValue={selectedLoan.startDate.substring(0, 10)}
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label htmlFor="editEndDate">End Date *</label>
+              <input
+                type="date"
+                id="editEndDate"
+                name="editEndDate"
+                required
+                defaultValue={selectedLoan.endDate.substring(0, 10)}
               />
             </div>
             <div className={styles.formGroup}>
@@ -876,13 +917,23 @@ const Loans: React.FC = () => {
               <input
                 type="text"
                 id="editPurpose"
+                name="editPurpose"
                 required
                 defaultValue={selectedLoan.purpose}
               />
             </div>
             <div className={styles.formGroup}>
+              <label htmlFor="editCollateral">Collateral</label>
+              <input
+                type="text"
+                id="editCollateral"
+                name="editCollateral"
+                defaultValue={selectedLoan.collateral || ''}
+              />
+            </div>
+            <div className={styles.formGroup}>
               <label htmlFor="editStatus">Status *</label>
-              <select id="editStatus" required defaultValue={selectedLoan.status}>
+              <select id="editStatus" name="editStatus" required defaultValue={selectedLoan.status}>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="overdue">Overdue</option>

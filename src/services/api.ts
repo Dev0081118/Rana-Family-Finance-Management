@@ -184,7 +184,23 @@ api.interceptors.request.use(
 
 // Response interceptor for comprehensive error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Transform _id to id for all response data objects
+    const transformId = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map((item: any) => ({ ...item, id: item._id || item.id }));
+      } else if (obj && typeof obj === 'object') {
+        return { ...obj, id: obj._id || obj.id };
+      }
+      return obj;
+    };
+
+    if (response.data && response.data.data !== undefined) {
+      response.data.data = transformId(response.data.data);
+    }
+
+    return response;
+  },
   (error: Error) => {
     const axiosError = error as AxiosError;
 
