@@ -43,10 +43,10 @@ const Topbar: React.FC<TopbarProps> = ({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest(`${styles.monthSelectorWrapper}`)) {
+      if (!target.closest(`.${styles.monthSelectorWrapper}`)) {
         setShowMonthDropdown(false);
       }
-      if (!target.closest(`${styles.userProfile}`)) {
+      if (!target.closest(`.${styles.userProfile}`)) {
         setShowUserDropdown(false);
       }
     };
@@ -139,44 +139,75 @@ const Topbar: React.FC<TopbarProps> = ({
           )}
         </button>
 
-        <div className={styles.userProfile} role="button" tabIndex={0} onClick={() => setShowUserDropdown(!showUserDropdown)}>
+        <div
+          className={styles.userProfile}
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowUserDropdown(!showUserDropdown)}
+          aria-expanded={showUserDropdown}
+        >
           <div className={styles.userAvatar}>
             {currentUser ? getUserInitials(currentUser.name) : 'JD'}
           </div>
           {(!isMobile || isTablet) && (
             <div className={styles.userInfo}>
-             <span className={styles.userName}>
-               {currentUser?.name || 'User'}
-             </span>
-             <span className={styles.userRole}>
-               {currentUser?.role === 'admin' ? 'Admin' : 'Member'}
-             </span>
+              <span className={styles.userName}>
+                {currentUser?.name || 'User'}
+              </span>
+              <span className={styles.userRole}>
+                {currentUser?.role === 'admin' ? 'Admin' : 'Member'}
+              </span>
             </div>
           )}
           <ChevronDown className={styles.chevronIcon} size={14} />
+          {showUserDropdown && (
+            <div className={styles.userDropdown} role="menu" onClick={(e) => e.stopPropagation()}>
+              <button
+                className={styles.userDropdownItem}
+                onClick={() => {
+                  navigate('/profile');
+                  setShowUserDropdown(false);
+                }}
+              >
+                <User size={16} />
+                View Profile
+              </button>
+              <button
+                className={styles.userDropdownItem}
+                onClick={() => {
+                  navigate('/profile?mode=edit');
+                  setShowUserDropdown(false);
+                }}
+              >
+                <Settings size={16} />
+                Edit Profile
+              </button>
+              {user?.role === 'admin' && (
+                <button
+                  className={styles.userDropdownItem}
+                  onClick={() => {
+                    navigate('/profile?mode=members');
+                    setShowUserDropdown(false);
+                  }}
+                >
+                  <User size={16} />
+                  Manage Members
+                </button>
+              )}
+              <div className={styles.userDropdownDivider}></div>
+              <button
+                className={styles.userDropdownItem}
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* User dropdown */}
-        {showUserDropdown && (
-          <div className={styles.userDropdown} role="menu">
-            <button className={styles.userDropdownItem} onClick={() => navigate('/profile')}>
-              <User size={16} />
-              Profile
-            </button>
-            <button className={styles.userDropdownItem} onClick={() => navigate('/profile')}>
-              <Settings size={16} />
-              Settings
-            </button>
-            <div className={styles.userDropdownDivider}></div>
-            <button className={styles.userDropdownItem} onClick={() => {
-              logout();
-              navigate('/login');
-            }}>
-              <LogOut size={16} />
-              Logout
-            </button>
-          </div>
-        )}
       </div>
     </header>
   );

@@ -279,6 +279,12 @@ export const authService = {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
+  updateProfile: (data: { name?: string; email?: string; avatar?: string }) =>
+    requestWithRetry(() => api.put('/auth/profile', data)),
+  getAllUsers: () =>
+    requestWithRetry(() => api.get('/auth/users')),
+  updateUser: (userId: string, data: { name?: string; email?: string; role?: 'admin' | 'member' }) =>
+    requestWithRetry(() => api.put(`/auth/users/${userId}`, data)),
 };
 
 // Income services

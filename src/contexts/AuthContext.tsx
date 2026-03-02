@@ -18,6 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
+  updateUser: (updatedUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,6 +99,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('User logged out');
   };
 
+  // Update user function - refreshes user data in state and localStorage
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    console.log('User data updated:', updatedUser.name);
+  };
+
   // Check authentication on mount
   useEffect(() => {
     checkAuth();
@@ -119,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     checkAuth,
+    updateUser,
   };
 
   return (

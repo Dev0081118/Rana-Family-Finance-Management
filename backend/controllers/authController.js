@@ -171,11 +171,65 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
+const getAllUsers = asyncHandler(async (req, res, next) => {
+  // Check if user is admin
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to access this resource'
+    });
+  }
+
+  const users = await User.find().select('-password');
+  
+  res.status(200).json({
+    success: true,
+    count: users.length,
+    users
+  });
+});
+
+const updateUser = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { name, email, role } = req.body;
+
+  // Check if user is admin
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to access this resource'
+    });
+  }
+
+  // Find user to update
+  const user = await User.findById(id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+
+  // Update fields
+  if (name) user.name = name;
+  if (email) user.email = email;
+  if (role) user.role = role;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    user
+  });
+});
+
 module.exports = {
   register,
   login,
   getProfile,
   updateProfile,
   changePassword,
-  forgotPassword
+  forgotPassword,
+  getAllUsers,
+  updateUser
 };

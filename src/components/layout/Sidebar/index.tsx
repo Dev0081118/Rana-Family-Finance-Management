@@ -28,7 +28,6 @@ const navItems: NavItem[] = [
   { id: 'expenses', label: 'Expenses', icon: <TrendingDown size={20} />, path: '/expenses' },
   { id: 'savings', label: 'Savings', icon: <PiggyBank size={20} />, path: '/savings' },
   { id: 'investments', label: 'Investments', icon: <Wallet size={20} />, path: '/investments' },
-  { id: 'profile', label: 'Profile', icon: <User size={20} />, path: '/profile' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
