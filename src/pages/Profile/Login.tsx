@@ -35,6 +35,7 @@ interface RegisterErrors {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   
   const [loginData, setLoginData] = useState<LoginFormData>({
@@ -136,9 +137,7 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await authService.login(loginData.email, loginData.password);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      await authLogin(loginData.email, loginData.password);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
@@ -165,12 +164,9 @@ const Login: React.FC = () => {
         registerData.password,
         registerData.role
       );
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      setSuccess('Registration successful! Redirecting...');
-      setTimeout(() => {
-        navigate('/');
-      }, 1000);
+      // Use the authLogin to properly set authentication state
+      await authLogin(registerData.email, registerData.password);
+      navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
