@@ -761,12 +761,23 @@ const Loans: React.FC = () => {
         title="Add Repayment"
         size="md"
       >
-        <form onSubmit={(e) => { e.preventDefault(); handleAddRepayment({ amount: 0, paymentDate: new Date().toISOString().split('T')[0], paymentMethod: 'cash' }); }}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target as HTMLFormElement);
+          const data = {
+            amount: Number(formData.get('repaymentAmount')),
+            paymentDate: formData.get('paymentDate') as string,
+            paymentMethod: formData.get('paymentMethod') as string,
+            notes: formData.get('repaymentNotes') as string || undefined
+          };
+          handleAddRepayment(data);
+        }}>
           <div className={styles.formGroup}>
             <label htmlFor="repaymentAmount">Payment Amount *</label>
             <input
               type="number"
               id="repaymentAmount"
+              name="repaymentAmount"
               required
               min="0.01"
               step="0.01"
@@ -778,13 +789,14 @@ const Loans: React.FC = () => {
             <input
               type="date"
               id="paymentDate"
+              name="paymentDate"
               required
               defaultValue={new Date().toISOString().split('T')[0]}
             />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="paymentMethod">Payment Method *</label>
-            <select id="paymentMethod" required>
+            <select id="paymentMethod" name="paymentMethod" required>
               <option value="cash">Cash</option>
               <option value="bank_transfer">Bank Transfer</option>
               <option value="cheque">Cheque</option>
@@ -796,6 +808,7 @@ const Loans: React.FC = () => {
             <label htmlFor="repaymentNotes">Notes</label>
             <textarea
               id="repaymentNotes"
+              name="repaymentNotes"
               rows={3}
               placeholder="Optional notes..."
             />
